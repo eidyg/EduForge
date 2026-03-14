@@ -1,0 +1,5 @@
+mcp
+python-docx
+pymupdf
+openpyxl
+requests
