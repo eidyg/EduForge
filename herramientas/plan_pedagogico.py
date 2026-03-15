@@ -264,6 +264,29 @@ def crear_docx_plan(datos: dict, ruta_salida: str):
 
     fila[4].merge(fila[5])  # vacía bajo Evidencias y Tiempo
     
+    # Filas de contenido
+    resultados = datos.get("resultados", [])
+    for resultado in resultados:
+        tabla.add_row()
+        fila = tabla.rows[-1].cells
+
+        # Resultado de aprendizaje
+        fila[0].paragraphs[0].add_run(resultado.get("ra", "")).font.size = Pt(10)
+
+        # Saberes esenciales
+        fila[1].paragraphs[0].add_run(resultado.get("saberes", "")).font.size = Pt(10)
+
+        # Estrategias docente
+        fila[2].paragraphs[0].add_run(resultado.get("estrategias_docente", "")).font.size = Pt(10)
+
+        # Estrategias estudiante
+        fila[3].paragraphs[0].add_run(resultado.get("estrategias_estudiante", "")).font.size = Pt(10)
+
+        # Evidencias
+        fila[4].paragraphs[0].add_run(resultado.get("evidencias", "")).font.size = Pt(10)
+
+        # Tiempo
+        fila[5].paragraphs[0].add_run(resultado.get("horas", "")).font.size = Pt(10)
     
     # Guardar
     doc.save(ruta_salida)
@@ -282,7 +305,17 @@ if __name__ == "__main__":
         "unidad": "Unidad 1",
         "tiempo_total": "48 horas",
         "competencias": "Comunicación asertiva",
-        "eje_politica": "Educar para el desarrollo sostenible"
+        "eje_politica": "Educar para el desarrollo sostenible",
+        "resultados": [
+            {
+                "ra": "1. Explicar la importancia de la ingeniería del software.",
+                "saberes": "• La ingeniería de software\n• La naturaleza del software\n• Definición de software",
+                "estrategias_docente": "• Presenta conceptos mediante técnica expositiva dialogada usando ejemplos de apps conocidas en Guanacaste.\n• Modela comparación de modelos de proceso.",
+                "estrategias_estudiante": "• Construye mapa conceptual sobre ingeniería del software.\n• Elabora cuadro comparativo de modelos.",
+                "evidencias": "Conocimiento: Mapa conceptual.\nDesempeño: Exposición grupal.\nProducto: Cuadro comparativo.",
+                "horas": "20"
+            }
+        ]
     }
-    crear_docx_plan(datos_prueba, "C:\\EduForge\\test_plan1.docx")
+    crear_docx_plan(datos_prueba, "C:\\EduForge\\test_plan2.docx")
     print("Documento creado")
