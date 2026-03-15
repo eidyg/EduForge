@@ -3,6 +3,10 @@ import os
 from mcp.server.fastmcp import FastMCP
 from docx import Document
 from openpyxl import load_workbook
+from docx.shared import Pt, RGBColor, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 mcp = FastMCP("eduforge-plan-pedagogico")
 
@@ -101,5 +105,184 @@ Generá:
 """
     return generar_con_ia(prompt)
 
+def crear_docx_plan(datos: dict, ruta_salida: str):
+    """Crea el documento .docx del plan de práctica pedagógica"""
+    doc = Document()
+
+    # Márgenes
+    for seccion in doc.sections:
+        seccion.top_margin = Cm(2)
+        seccion.bottom_margin = Cm(2)
+        seccion.left_margin = Cm(2.5)
+        seccion.right_margin = Cm(2.5)
+
+    # Tabla principal
+    tabla = doc.add_table(rows=1, cols=6)
+    tabla.style = 'Table Grid'
+
+    def celda_encabezado(celda, etiqueta, valor=""):
+        print(f"etiqueta={etiqueta}, valor={valor}")  # debug
+        p = celda.paragraphs[0]
+        p.clear()
+        run_etiqueta = p.add_run(etiqueta)
+        run_etiqueta.bold = True
+        run_etiqueta.font.size = Pt(10)
+        if valor:
+            run_valor = p.add_run(f" {valor}")
+            run_valor.font.size = Pt(10)
+
+    # Fila 1 — título
+    fila = tabla.rows[0].cells
+    fila[0].merge(fila[5])
+    fila[0].text = ""
+    p = fila[0].paragraphs[0]
+    run = p.add_run("PLAN DE PRÁCTICA PEDAGÓGICA")
+    run.bold = True
+    run.font.size = Pt(12)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Fila 2 — centro educativo y curso lectivo
+    tabla.add_row()
+    fila = tabla.rows[-1].cells
+    fila[0].merge(fila[3])
+    fila[4].merge(fila[5])
+    celda_encabezado(fila[0], "Centro educativo:", datos.get("institucion", ""))
+    celda_encabezado(fila[4], "Curso lectivo:", datos.get("curso_lectivo", "2026"))
+
+    # Fila 3 — docente y nivel
+    tabla.add_row()
+    fila = tabla.rows[-1].cells
+    fila[0].merge(fila[3])
+    fila[4].merge(fila[5])
+    celda_encabezado(fila[0], "Nombre de la persona docente:", datos.get("docente", ""))
+    celda_encabezado(fila[4], "Nivel:", datos.get("nivel", ""))
+
+    # Fila 4 — especialidad, modalidad, campo detallado
+    tabla.add_row()
+    fila = tabla.rows[-1].cells
+    fila[0].merge(fila[1])
+    fila[2].merge(fila[3])
+    fila[4].merge(fila[5])
+    celda_encabezado(fila[0], "Especialidad:", datos.get("especialidad", ""))
+    celda_encabezado(fila[2], "Modalidad:", datos.get("modalidad", ""))
+    celda_encabezado(fila[4], "Campo detallado:", datos.get("campo_detallado", ""))
+
+    # Fila 5 — subárea, unidad, tiempo
+    tabla.add_row()
+    fila = tabla.rows[-1].cells
+    fila[0].merge(fila[1])
+    fila[2].merge(fila[3])
+    fila[4].merge(fila[5])
+    celda_encabezado(fila[0], "Subárea:", datos.get("subarea", ""))
+    celda_encabezado(fila[2], "Unidad de estudio:", datos.get("unidad", ""))
+    celda_encabezado(fila[4], "Tiempo estimado:", datos.get("tiempo_total", ""))
+
+    # Fila 6 — competencias y eje política
+    tabla.add_row()
+    fila = tabla.rows[-1].cells
+    fila[0].merge(fila[2])
+    fila[3].merge(fila[5])
+    celda_encabezado(fila[0], "Competencias para el desarrollo humano:", datos.get("competencias", ""))
+    celda_encabezado(fila[3], "Eje política educativa:", datos.get("eje_politica", ""))
+
+    # Fila de cabeceras de la tabla de contenido
+    # Separar las tablas
+    doc.add_paragraph()
+    tabla = doc.add_table(rows=0, cols=6)
+    tabla.style = 'Table Grid'
+    tabla.add_row()
+    fila = tabla.rows[-1].cells
+
+    # Cabeceras
+    cabeceras = [
+        ("Resultados de\naprendizaje", 1),
+        ("Saberes esenciales", 1),
+        ("Estrategias para la mediación pedagógica", 2),
+        ("Evidencias de aprendizaje", 1),
+        ("Tiempo estimado\n(horas)", 1),
+    ]
+
+    # Columna 0 — Resultados
+    p = fila[0].paragraphs[0]
+    p.clear()
+    run = p.add_run("Resultados de\naprendizaje")
+    run.bold = True
+    run.font.size = Pt(10)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Columna 1 — Saberes
+    p = fila[1].paragraphs[0]
+    p.clear()
+    run = p.add_run("Saberes esenciales")
+    run.bold = True
+    run.font.size = Pt(10)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Columna 2+3 — Estrategias (fusionadas)
+    fila[2].merge(fila[3])
+    p = fila[2].paragraphs[0]
+    p.clear()
+    run = p.add_run("Estrategias para la mediación pedagógica")
+    run.bold = True
+    run.font.size = Pt(10)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Columna 4 — Evidencias
+    p = fila[4].paragraphs[0]
+    p.clear()
+    run = p.add_run("Evidencias de aprendizaje")
+    run.bold = True
+    run.font.size = Pt(10)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Columna 5 — Tiempo
+    p = fila[5].paragraphs[0]
+    p.clear()
+    run = p.add_run("Tiempo estimado\n(horas)")
+    run.bold = True
+    run.font.size = Pt(10)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Fila de subcabeceras Docente / Estudiante
+    tabla.add_row()
+    fila = tabla.rows[-1].cells
+    fila[0].merge(fila[1])  # vacía bajo RA y Saberes
+    
+    p = fila[2].paragraphs[0]
+    p.clear()
+    run = p.add_run("Docente")
+    run.bold = True
+    run.font.size = Pt(10)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    p = fila[3].paragraphs[0]
+    p.clear()
+    run = p.add_run("Estudiante")
+    run.bold = True
+    run.font.size = Pt(10)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    fila[4].merge(fila[5])  # vacía bajo Evidencias y Tiempo
+    
+    
+    # Guardar
+    doc.save(ruta_salida)
+    return f"Documento guardado en {ruta_salida}"
+
 if __name__ == "__main__":
-    mcp.run()
+    datos_prueba = {
+        "institucion": "CTP de Hojancha",
+        "curso_lectivo": "2026",
+        "docente": "Eidy Guevara",
+        "nivel": "10°",
+        "especialidad": "Informática",
+        "modalidad": "Técnica",
+        "campo_detallado": "Desarrollo de Software",
+        "subarea": "Desarrollo Web",
+        "unidad": "Unidad 1",
+        "tiempo_total": "48 horas",
+        "competencias": "Comunicación asertiva",
+        "eje_politica": "Educar para el desarrollo sostenible"
+    }
+    crear_docx_plan(datos_prueba, "C:\\EduForge\\test_plan1.docx")
+    print("Documento creado")
